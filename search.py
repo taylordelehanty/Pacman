@@ -108,23 +108,40 @@ def breadthFirstSearch(problem):
   Search the shallowest nodes in the search tree first.
   [2nd Edition: p 73, 3rd Edition: p 82]
   """
-  "*** YOUR CODE HERE ***"
-  startState = problem.getStartState()
-  visited, path = set(), util.Queue()
-  path.push((startState, []))
+  path = util.Queue()
+  path.push((problem.getStartState(), set(), []))
+  problem_class = problem.__class__.__name__
   
   while path:
-    pivot, actions = path.pop()
+    pivot, visited, actions = path.pop()
     visited.add(pivot)
-    successors = problem.getSuccessors(pivot)
 
+    # Get successors
+    successors_param = None
+    if problem_class == 'CornersProblem':
+      successors_param = (pivot, visited)
+    elif problem_class == 'PositionSearchProblem':
+      successors_param = pivot
+    successors = problem.getSuccessors(successors_param)
+
+    # Look ahead
     for nextState, nextAction, nextCost in successors:
       if nextState not in visited:
         newActions = actions + [nextAction]
-        if problem.isGoalState(nextState):
+
+        # Get if goal or not
+        isGoal = None
+        if problem_class == 'CornersProblem':
+          # Overwrite visited
+          isGoal, visited = problem.isGoalState((nextState, visited))
+          print isGoal, visited
+        elif problem_class == 'PositionSearchProblem':
+          isGoal = problem.isGoalState(nextState)
+
+        if isGoal:
           return newActions
         
-        path.push((nextState, newActions))
+        path.push((nextState, visited, newActions))
 
   return "No solution found"
       
@@ -162,11 +179,11 @@ def aStarSearch(problem, heuristic=nullHeuristic):
   "Search the node that has the lowest combined cost and heuristic first."
   "*** YOUR CODE HERE ***"
   startState = problem.getStartState()
-  visited, path = set(), util.PriorityQueueWithFunction(heuristic)
-  path.push(startState, problem, [])
+  visited, path = set(), util.PriorityQueue()
+  path.push((startState, []), heuristic(startState, problem))
   
   while path: 
-    pivot, _, actions = path.pop() # need to figure out where actionis will go!
+    pivot, actions = path.pop() # need to figure out where actionis will go!
     if problem.isGoalState(pivot):
       return actions
     visited.add(pivot)
@@ -175,7 +192,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     for nextState, nextAction, nextCost in successors:
       if nextState not in visited:
         newActions = actions + [nextAction]
-        path.push(nextState, problem, newActions)
+        path.push((nextState, newActions), nextCost + heuristic(nextState, problem))
 
   return "No solution found"
     
